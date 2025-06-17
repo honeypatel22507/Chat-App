@@ -1,1 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect Chat Room</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="header">
+            <h2><i class="fas fa-hashtag"></i> Room: <span id="room-code">{{ room }}</span></h2>
+            <div class="user-info"><i class="fas fa-user"></i> {{ name }}</div>
+            <a href="/" class="leave-btn"><i class="fas fa-sign-out-alt"></i> Leave</a>
+        </div>
+        
+        <div class="messages" id="messages">
+            {% for msg in messages %}
+                {% if 'entered the room' in msg.message or 'left the room' in msg.message %}
+                    <div class="message message-system">
+                        <p class="content">{{ msg.name }} {{ msg.message }}</p>
+                    </div>
+                {% else %}
+                    <div class="message {% if msg.name == name %}message-own{% endif %}">
+                        <span class="sender">{{ msg.name }}</span>
+                        <p class="content">{{ msg.message }}</p>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        <div class="message-input">
+            <input type="text" id="message" placeholder="Type a message..." autocomplete="off" />
+            <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
 
+    <script>
+        const socket = io();
+        const messageInput = document.getElementById('message');
+        const messagesContainer = document.getElementById('messages');
+        const sendButton = document.getElementById('send-btn');
+        const userName = "{{ name }}";
+        
+        // Function to generate a consistent color based on username
+        function getUserColor(name) {
+            // List of WhatsApp-like colors (excluding very light colors)
+            const colors = [
+                '#FF6B6B', '#4ECDC4', '#45B7D1', '#F9C74F', 
+                '#A06CD5', '#FF9A76', '#79D45E', '#6A8CAF',
+                '#F86624', '#43AA8B', '#277DA1', '#577590',
+                '#4D908E', '#F94144', '#F3722C', '#90BE6D',
+                '#DC2F02', '#9D4EDD', '#ff006e', '#3a86ff'
+            ];
+            
+            // Simple hash function to get a consistent index
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) {
+                hash = (hash + name.charCodeAt(i)) % colors.length;
+            }
+            
+            return colors[hash];
+        }
+
+        // Send message function
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message) {
+                socket.emit('message', { message: message });
+                messageInput.value = '';
+                messageInput.focus();
+            }
+        }
+
+        // Send message on button click
+        sendButton.addEventListener('click', sendMessage);
+
+        // Send message on Enter key press
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Receive messages
+        socket.on('message', function(data) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            
+            // Check if it's a system message
+            if (data.message.includes('entered the room') || data.message.includes('left the room')) {
+                messageElement.classList.add('message-system');
+                messageElement.innerHTML = `<p class="content">${data.name} ${data.message}</p>`;
+            } else {
+                // Regular message
+                if (data.name === userName) {
+                    messageElement.classList.add('message-own');
+                    // Own messages have white sender names
+                    messageElement.innerHTML = `
+                        <span class="sender" style="color: #FFFFFF">${data.name}</span>
+                        <p class="content">${data.message}</p>
+                    `;
+                } else {
+                    // Other users get colored names
+                    const userColor = getUserColor(data.name);
+                    messageElement.innerHTML = `
+                        <span class="sender" style="color: ${userColor}">${data.name}</span>
+                        <p class="content">${data.message}</p>
+                    `;
+                }
+            }
+            
+            messagesContainer.appendChild(messageElement);
+            // Auto-scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        });
+
+        // Auto-focus message input when page loads
+        window.onload = function() {
+            messageInput.focus();
+            // Scroll to bottom of messages
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Apply colors to existing messages on load
+            document.querySelectorAll('.message:not(.message-own):not(.message-system) .sender').forEach(sender => {
+                if (sender.parentElement.classList.contains('message-own')) return;
+                const name = sender.textContent;
+                sender.style.color = getUserColor(name);
+            });
+        };
+    </script>
+</body>
+</html>

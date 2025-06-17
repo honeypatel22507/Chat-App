@@ -1,1 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Chat App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="form-box">
+            <h1><i class="fas fa-comments"></i> Connect Chat</h1>
+            <form method="POST">
+                <div class="form-group">
+                    <label for="name"><i class="fas fa-user"></i> Your Name</label>
+                    <input type="text" name="name" id="name" placeholder="Enter your name" value="{{ name }}" autocomplete="off" required />
+                </div>
+                
+                <div class="form-group" id="code-section" style="display: none;">
+                    <label for="code"><i class="fas fa-key"></i> Room Code</label>
+                    <input type="text" name="code" id="code" placeholder="Enter 6-digit room code" value="{{ code }}" autocomplete="off" pattern="[0-9]{6}" title="6-digit code" />
+                </div>
+                
+                {% if error %}
+                <div class="error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+                {% endif %}
+                
+                <div class="button-group">
+                    <button type="submit" name="create" value="1" class="btn" id="create-btn">
+                        <i class="fas fa-plus-circle"></i> Create New Room
+                    </button>
+                    <button type="button" class="btn secondary-btn" id="join-toggle-btn">
+                        <i class="fas fa-sign-in-alt"></i> Join Existing Room
+                    </button>
+                    <button type="submit" name="join" value="1" class="btn" id="join-btn" style="display: none;">
+                        <i class="fas fa-sign-in-alt"></i> Join Room
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
+    <script>
+        // Toggle room code input visibility
+        const joinToggleBtn = document.getElementById('join-toggle-btn');
+        const codeSection = document.getElementById('code-section');
+        const joinBtn = document.getElementById('join-btn');
+        
+        joinToggleBtn.addEventListener('click', function() {
+            codeSection.style.display = 'block';
+            joinToggleBtn.style.display = 'none';
+            joinBtn.style.display = 'block';
+            document.getElementById('code').focus();
+        });
+        
+        // If there was an error and code field should be visible
+        if (document.querySelector('.error') && "{{ code }}") {
+            codeSection.style.display = 'block';
+            joinToggleBtn.style.display = 'none';
+            joinBtn.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
